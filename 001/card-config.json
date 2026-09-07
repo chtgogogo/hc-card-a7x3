@@ -1,0 +1,29 @@
+{
+  "title": "扇影佳人",
+  "subtitle": "和风典藏",
+  "technique": "樱色流光",
+  "tagline": "首批真图试制：一张随手拍，一张传说卡。",
+  "edition": "001 / 005",
+  "collection": "card-shop 真图组",
+  "description": "来自普通手机照片的全息典藏卡。",
+  "parameters": {
+    "subjectScale": 1.25,
+    "subjectDepth": 0.28,
+    "backgroundDepth": -0.2,
+    "foil": 0.65
+  },
+  "safeArea": {
+    "scale": 1.12,
+    "offset": [
+      -0.06,
+      -0.085
+    ]
+  },
+  "assets": {
+    "subject": "./assets/subject.png",
+    "background": "./assets/background.png",
+    "text": "./assets/text.png",
+    "lineart": "./assets/lineart.png",
+    "model": "./assets/card.glb"
+  }
+}
