@@ -7,6 +7,16 @@
     <title>白相 · White Atelier</title>
     <link rel="stylesheet" href="./style.css" />
     <script type="module" src="./app.bundle.js"></script>
+    <style>
+    .pack-overlay{position:fixed;inset:0;z-index:60;background:rgba(10,8,20,.86);backdrop-filter:blur(7px);display:grid;place-items:center;cursor:pointer}
+    .pack{width:224px;height:322px;border-radius:18px;display:grid;place-items:center;font-size:64px;color:#f0d896;
+      background:linear-gradient(160deg,#2a2350,#171233);border:1px solid rgba(212,175,105,.55);
+      box-shadow:0 24px 70px rgba(0,0,0,.65),inset 0 0 44px rgba(212,175,105,.14);transform:rotate(-4deg);
+      transition:transform .45s ease,opacity .45s ease;text-shadow:0 0 24px rgba(212,175,105,.55)}
+    .pack-overlay.open .pack{transform:translateY(-46px) rotate(9deg) scale(1.07);opacity:0}
+    .pack-hint{position:fixed;bottom:17%;left:0;right:0;text-align:center;font-size:14px;color:#9a8fc0;letter-spacing:6px;animation:packPulse 1.6s ease-in-out infinite}
+    @keyframes packPulse{0%,100%{opacity:.4}50%{opacity:1}}
+    </style>
   </head>
   <body>
     <header class="masthead">
@@ -83,6 +93,36 @@
             disabled
           >
             <i data-lucide="Waves"></i>
+          </button>
+          <button
+            class="icon-button"
+            id="ambience"
+            aria-label="星屑氛围"
+            title="星屑氛围"
+            aria-pressed="true"
+            disabled
+          >
+            <i data-lucide="Sparkles"></i>
+          </button>
+          <button
+            class="icon-button"
+            id="gyro"
+            aria-label="陀螺仪视角"
+            title="陀螺仪视角（手机）"
+            aria-pressed="false"
+            disabled
+          >
+            <i data-lucide="Smartphone"></i>
+          </button>
+          <button
+            class="icon-button"
+            id="sound"
+            aria-label="音效"
+            title="音效"
+            aria-pressed="true"
+            disabled
+          >
+            <i data-lucide="Volume2"></i>
           </button>
           <button
             class="icon-button"

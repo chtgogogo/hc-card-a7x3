@@ -6439,27 +6439,27 @@
         te[6] = b * c;
         te[10] = a * c;
       } else if (euler.order === "YZX") {
-        const ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+        const ac2 = a * c, ad = a * d, bc = b * c, bd = b * d;
         te[0] = c * e;
-        te[4] = bd - ac * f;
+        te[4] = bd - ac2 * f;
         te[8] = bc * f + ad;
         te[1] = f;
         te[5] = a * e;
         te[9] = -b * e;
         te[2] = -d * e;
         te[6] = ad * f + bc;
-        te[10] = ac - bd * f;
+        te[10] = ac2 - bd * f;
       } else if (euler.order === "XZY") {
-        const ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+        const ac2 = a * c, ad = a * d, bc = b * c, bd = b * d;
         te[0] = c * e;
         te[4] = -f;
         te[8] = d * e;
-        te[1] = ac * f + bd;
+        te[1] = ac2 * f + bd;
         te[5] = a * e;
         te[9] = ad * f - bc;
         te[2] = bc * f - ad;
         te[6] = b * e;
-        te[10] = bd * f + ac;
+        te[10] = bd * f + ac2;
       }
       te[3] = 0;
       te[7] = 0;
@@ -13169,6 +13169,166 @@
       }
     }
   };
+  var SpriteMaterial = class extends Material {
+    /**
+     * Constructs a new sprite material.
+     *
+     * @param {Object} [parameters] - An object with one or more properties
+     * defining the material's appearance. Any property of the material
+     * (including any property from inherited materials) can be passed
+     * in here. Color values can be passed any type of value accepted
+     * by {@link Color#set}.
+     */
+    constructor(parameters) {
+      super();
+      this.isSpriteMaterial = true;
+      this.type = "SpriteMaterial";
+      this.color = new Color(16777215);
+      this.map = null;
+      this.alphaMap = null;
+      this.rotation = 0;
+      this.sizeAttenuation = true;
+      this.transparent = true;
+      this.fog = true;
+      this.setValues(parameters);
+    }
+    copy(source) {
+      super.copy(source);
+      this.color.copy(source.color);
+      this.map = source.map;
+      this.alphaMap = source.alphaMap;
+      this.rotation = source.rotation;
+      this.sizeAttenuation = source.sizeAttenuation;
+      this.fog = source.fog;
+      return this;
+    }
+  };
+  var _geometry;
+  var _intersectPoint = /* @__PURE__ */ new Vector3();
+  var _worldScale = /* @__PURE__ */ new Vector3();
+  var _mvPosition = /* @__PURE__ */ new Vector3();
+  var _alignedPosition = /* @__PURE__ */ new Vector2();
+  var _rotatedPosition = /* @__PURE__ */ new Vector2();
+  var _viewWorldMatrix = /* @__PURE__ */ new Matrix4();
+  var _vA = /* @__PURE__ */ new Vector3();
+  var _vB = /* @__PURE__ */ new Vector3();
+  var _vC = /* @__PURE__ */ new Vector3();
+  var _uvA = /* @__PURE__ */ new Vector2();
+  var _uvB = /* @__PURE__ */ new Vector2();
+  var _uvC = /* @__PURE__ */ new Vector2();
+  var Sprite = class extends Object3D {
+    /**
+     * Constructs a new sprite.
+     *
+     * @param {(SpriteMaterial|SpriteNodeMaterial)} [material] - The sprite material.
+     */
+    constructor(material = new SpriteMaterial()) {
+      super();
+      this.isSprite = true;
+      this.type = "Sprite";
+      if (_geometry === void 0) {
+        _geometry = new BufferGeometry();
+        const float32Array = new Float32Array([
+          -0.5,
+          -0.5,
+          0,
+          0,
+          0,
+          0.5,
+          -0.5,
+          0,
+          1,
+          0,
+          0.5,
+          0.5,
+          0,
+          1,
+          1,
+          -0.5,
+          0.5,
+          0,
+          0,
+          1
+        ]);
+        const interleavedBuffer = new InterleavedBuffer(float32Array, 5);
+        _geometry.setIndex([0, 1, 2, 0, 2, 3]);
+        _geometry.setAttribute("position", new InterleavedBufferAttribute(interleavedBuffer, 3, 0, false));
+        _geometry.setAttribute("uv", new InterleavedBufferAttribute(interleavedBuffer, 2, 3, false));
+      }
+      this.geometry = _geometry;
+      this.material = material;
+      this.center = new Vector2(0.5, 0.5);
+      this.count = 1;
+    }
+    /**
+     * Computes intersection points between a casted ray and this sprite.
+     *
+     * @param {Raycaster} raycaster - The raycaster.
+     * @param {Array<Object>} intersects - The target array that holds the intersection points.
+     */
+    raycast(raycaster, intersects) {
+      if (raycaster.camera === null) {
+        console.error('THREE.Sprite: "Raycaster.camera" needs to be set in order to raycast against sprites.');
+      }
+      _worldScale.setFromMatrixScale(this.matrixWorld);
+      _viewWorldMatrix.copy(raycaster.camera.matrixWorld);
+      this.modelViewMatrix.multiplyMatrices(raycaster.camera.matrixWorldInverse, this.matrixWorld);
+      _mvPosition.setFromMatrixPosition(this.modelViewMatrix);
+      if (raycaster.camera.isPerspectiveCamera && this.material.sizeAttenuation === false) {
+        _worldScale.multiplyScalar(-_mvPosition.z);
+      }
+      const rotation = this.material.rotation;
+      let sin, cos;
+      if (rotation !== 0) {
+        cos = Math.cos(rotation);
+        sin = Math.sin(rotation);
+      }
+      const center = this.center;
+      transformVertex(_vA.set(-0.5, -0.5, 0), _mvPosition, center, _worldScale, sin, cos);
+      transformVertex(_vB.set(0.5, -0.5, 0), _mvPosition, center, _worldScale, sin, cos);
+      transformVertex(_vC.set(0.5, 0.5, 0), _mvPosition, center, _worldScale, sin, cos);
+      _uvA.set(0, 0);
+      _uvB.set(1, 0);
+      _uvC.set(1, 1);
+      let intersect = raycaster.ray.intersectTriangle(_vA, _vB, _vC, false, _intersectPoint);
+      if (intersect === null) {
+        transformVertex(_vB.set(-0.5, 0.5, 0), _mvPosition, center, _worldScale, sin, cos);
+        _uvB.set(0, 1);
+        intersect = raycaster.ray.intersectTriangle(_vA, _vC, _vB, false, _intersectPoint);
+        if (intersect === null) {
+          return;
+        }
+      }
+      const distance = raycaster.ray.origin.distanceTo(_intersectPoint);
+      if (distance < raycaster.near || distance > raycaster.far) return;
+      intersects.push({
+        distance,
+        point: _intersectPoint.clone(),
+        uv: Triangle.getInterpolation(_intersectPoint, _vA, _vB, _vC, _uvA, _uvB, _uvC, new Vector2()),
+        face: null,
+        object: this
+      });
+    }
+    copy(source, recursive) {
+      super.copy(source, recursive);
+      if (source.center !== void 0) this.center.copy(source.center);
+      this.material = source.material;
+      return this;
+    }
+  };
+  function transformVertex(vertexPosition, mvPosition, center, scale, sin, cos) {
+    _alignedPosition.subVectors(vertexPosition, center).addScalar(0.5).multiply(scale);
+    if (sin !== void 0) {
+      _rotatedPosition.x = cos * _alignedPosition.x - sin * _alignedPosition.y;
+      _rotatedPosition.y = sin * _alignedPosition.x + cos * _alignedPosition.y;
+    } else {
+      _rotatedPosition.copy(_alignedPosition);
+    }
+    vertexPosition.copy(mvPosition);
+    vertexPosition.x += _rotatedPosition.x;
+    vertexPosition.y += _rotatedPosition.y;
+    vertexPosition.applyMatrix4(_viewWorldMatrix);
+  }
   var _basePosition = /* @__PURE__ */ new Vector3();
   var _skinIndex = /* @__PURE__ */ new Vector4();
   var _skinWeight = /* @__PURE__ */ new Vector4();
@@ -30763,6 +30923,118 @@ void main() {
 
   // icons.data.js
   var ICON_TREES = {
+    "Smartphone": [
+      "svg",
+      {
+        "xmlns": "http://www.w3.org/2000/svg",
+        "width": 24,
+        "height": 24,
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": 2,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      [
+        [
+          "rect",
+          {
+            "x": "5",
+            "y": "2",
+            "width": "14",
+            "height": "20",
+            "rx": "2"
+          }
+        ],
+        [
+          "path",
+          {
+            "d": "M12 18h.01"
+          }
+        ]
+      ]
+    ],
+    "Sparkles": [
+      "svg",
+      {
+        "xmlns": "http://www.w3.org/2000/svg",
+        "width": 24,
+        "height": 24,
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": 2,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      [
+        [
+          "path",
+          {
+            "d": "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+          }
+        ],
+        [
+          "path",
+          {
+            "d": "M20 3v4"
+          }
+        ],
+        [
+          "path",
+          {
+            "d": "M22 5h-4"
+          }
+        ],
+        [
+          "path",
+          {
+            "d": "M4 17v2"
+          }
+        ],
+        [
+          "path",
+          {
+            "d": "M5 18H3"
+          }
+        ]
+      ]
+    ],
+    "Volume2": [
+      "svg",
+      {
+        "xmlns": "http://www.w3.org/2000/svg",
+        "width": 24,
+        "height": 24,
+        "viewBox": "0 0 24 24",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": 2,
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      },
+      [
+        [
+          "polygon",
+          {
+            "points": "11 5 6 9 2 9 2 15 6 15 11 19 11 5"
+          }
+        ],
+        [
+          "path",
+          {
+            "d": "M15.54 8.46a5 5 0 0 1 0 7.07"
+          }
+        ],
+        [
+          "path",
+          {
+            "d": "M19.07 4.93a10 10 0 0 1 0 14.14"
+          }
+        ]
+      ]
+    ],
     "Video": [
       "svg",
       {
@@ -31169,6 +31441,15 @@ void main() {
   var floatOn = true;
   var floatT = 0;
   var recording = false;
+  var gyroOn = false;
+  var gyroHandler = null;
+  var gyroSuspend = false;
+  var ambienceOn = true;
+  var soundOn = true;
+  var ambT = 0;
+  var revealT = 1;
+  var particles = null;
+  var glowSprite = null;
   var auto = false;
   var flipped = false;
   var dragging = false;
@@ -31599,7 +31880,7 @@ void main(){vec4 art=texture2D(tText,vUv);if(art.a<.02)discard;gl_FragColor=vec4
     stage.append(wrap);
     $("loading").remove();
     let tx = -0.03, ty = -0.06, curX = 0, curY = 0, curFlip = 0, flipTarget = 0;
-    let lastMove = 0, sway = !media.matches;
+    let lastMove2 = 0, sway = !media.matches;
     let scale = 1, depthScale = 1, bgScale = 1, textScale = 1;
     const applyLayers = () => {
       for (const [name, { el, z }] of layers) {
@@ -31612,16 +31893,16 @@ void main(){vec4 art=texture2D(tText,vUv);if(art.a<.02)discard;gl_FragColor=vec4
       const r = stage.getBoundingClientRect();
       tx = Math.max(-0.5, Math.min(0.5, ((e.clientY - r.top) / r.height - 0.5) * 0.9));
       ty = Math.max(-0.5, Math.min(0.5, ((e.clientX - r.left) / r.width - 0.5) * 1.1));
-      lastMove = performance.now();
+      lastMove2 = performance.now();
       const c = card.getBoundingClientRect();
       front.style.setProperty("--mx", Math.round((e.clientX - c.left) / c.width * 100) + "%");
       front.style.setProperty("--my", Math.round((e.clientY - c.top) / c.height * 100) + "%");
     });
     stage.addEventListener("pointerleave", () => {
-      lastMove = 0;
+      lastMove2 = 0;
     });
     const frame = (now) => {
-      if (sway && now - lastMove > 1500) {
+      if (sway && now - lastMove2 > 1500) {
         const t = now / 1e3;
         tx = Math.sin(t * 0.7) * 0.07 + 0.05;
         ty = Math.sin(t * 0.55) * 0.11 - 0.18;
@@ -31671,7 +31952,7 @@ void main(){vec4 art=texture2D(tText,vUv);if(art.a<.02)discard;gl_FragColor=vec4
     $("reset").onclick = () => {
       tx = -0.03;
       ty = -0.06;
-      lastMove = 0;
+      lastMove2 = 0;
       setFlip(false);
       scale = 1;
       depthScale = 1;
@@ -31777,6 +32058,7 @@ void main(){vec4 art=texture2D(tText,vUv);if(art.a<.02)discard;gl_FragColor=vec4
     $("view-label").textContent = flipped ? "02 / BACK" : "01 / FRONT";
   }
   function flip(value = !flipped) {
+    playWhoosh();
     flipped = value;
     setAuto(false);
     targetY = flipped ? Math.PI : 0;
@@ -31851,6 +32133,48 @@ void main(){vec4 art=texture2D(tText,vUv);if(art.a<.02)discard;gl_FragColor=vec4
         if (!floatOn) root.position.y = 0;
       };
     }
+    buildAmbience();
+    startReveal();
+    const amb = $("ambience");
+    if (amb) {
+      amb.disabled = false;
+      amb.setAttribute("aria-pressed", "true");
+      amb.onclick = () => {
+        ambienceOn = !ambienceOn;
+        amb.setAttribute("aria-pressed", String(ambienceOn));
+      };
+    }
+    const snd = $("sound");
+    if (snd) {
+      snd.disabled = false;
+      snd.setAttribute("aria-pressed", "true");
+      snd.onclick = () => {
+        soundOn = !soundOn;
+        snd.setAttribute("aria-pressed", String(soundOn));
+        if (soundOn) playChime();
+      };
+    }
+    const gyroBtn = $("gyro");
+    if (gyroBtn) {
+      if ("ontouchstart" in window && "DeviceOrientationEvent" in window) {
+        gyroBtn.disabled = false;
+        gyroBtn.onclick = () => setGyro(!gyroOn);
+      } else {
+        gyroBtn.style.display = "none";
+      }
+    }
+    const pack = document.createElement("div");
+    pack.className = "pack-overlay";
+    pack.innerHTML = '<div class="pack">\u2726</div><div class="pack-hint">\u70B9 \u51FB \u5F00 \u5361</div>';
+    pack.onclick = () => {
+      playWhoosh();
+      pack.classList.add("open");
+      setTimeout(() => {
+        pack.remove();
+        startReveal();
+      }, 430);
+    };
+    stage.parentElement.append(pack);
     stage.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
       dragging = true;
@@ -31973,6 +32297,145 @@ void main(){vec4 art=texture2D(tText,vUv);if(art.a<.02)discard;gl_FragColor=vec4
       notice("\u56FE\u5F62\u663E\u793A\u5DF2\u6682\u505C\uFF0C\u8BF7\u5237\u65B0\u9875\u9762\u6062\u590D");
     });
   }
+  var actx = null;
+  function ac() {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === "suspended") actx.resume();
+    return actx;
+  }
+  function playWhoosh() {
+    if (!soundOn) return;
+    try {
+      const c = ac(), dur = 0.28;
+      const buf = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+      const src = c.createBufferSource();
+      src.buffer = buf;
+      const bp = c.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.Q.value = 1.2;
+      bp.frequency.setValueAtTime(420, c.currentTime);
+      bp.frequency.exponentialRampToValueAtTime(2600, c.currentTime + dur);
+      const g = c.createGain();
+      g.gain.setValueAtTime(1e-4, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.45, c.currentTime + 0.05);
+      g.gain.exponentialRampToValueAtTime(1e-4, c.currentTime + dur);
+      src.connect(bp);
+      bp.connect(g);
+      g.connect(c.destination);
+      src.start();
+    } catch (e) {
+    }
+  }
+  function playChime() {
+    if (!soundOn) return;
+    try {
+      const c = ac();
+      [659.25, 987.77].forEach((f, i) => {
+        const o = c.createOscillator();
+        o.type = "sine";
+        o.frequency.value = f;
+        const g = c.createGain();
+        const t = c.currentTime + i * 0.09;
+        g.gain.setValueAtTime(1e-4, t);
+        g.gain.exponentialRampToValueAtTime(0.2, t + 0.03);
+        g.gain.exponentialRampToValueAtTime(1e-4, t + 0.7);
+        o.connect(g);
+        g.connect(c.destination);
+        o.start(t);
+        o.stop(t + 0.75);
+      });
+    } catch (e) {
+    }
+  }
+  function buildAmbience() {
+    const N = 90, pos = new Float32Array(N * 3), meta = [];
+    for (let i = 0; i < N; i++) {
+      meta.push({
+        a: Math.random() * Math.PI * 2,
+        r: 3.1 + Math.random() * 2.7,
+        h: (Math.random() - 0.5) * 7.4,
+        sp: (0.12 + Math.random() * 0.3) * (Math.random() < 0.5 ? -1 : 1),
+        ph: Math.random() * 6.28
+      });
+    }
+    const geo = new BufferGeometry();
+    geo.setAttribute("position", new BufferAttribute(pos, 3));
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = 64;
+    const cx = cv.getContext("2d");
+    const gr = cx.createRadialGradient(32, 32, 0, 32, 32, 30);
+    gr.addColorStop(0, "rgba(255,240,200,1)");
+    gr.addColorStop(0.4, "rgba(240,216,150,.55)");
+    gr.addColorStop(1, "rgba(240,216,150,0)");
+    cx.fillStyle = gr;
+    cx.fillRect(0, 0, 64, 64);
+    const mat = new PointsMaterial({
+      size: 0.15,
+      map: new CanvasTexture(cv),
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false,
+      blending: AdditiveBlending
+    });
+    particles = { pts: new Points(geo, mat), meta, mat };
+    root.add(particles.pts);
+    const gc = document.createElement("canvas");
+    gc.width = gc.height = 256;
+    const gg = gc.getContext("2d");
+    const gr2 = gg.createRadialGradient(128, 128, 10, 128, 128, 122);
+    gr2.addColorStop(0, "rgba(240,216,150,.5)");
+    gr2.addColorStop(1, "rgba(240,216,150,0)");
+    gg.fillStyle = gr2;
+    gg.fillRect(0, 0, 256, 256);
+    glowSprite = new Sprite(new SpriteMaterial({
+      map: new CanvasTexture(gc),
+      transparent: true,
+      opacity: 0.4,
+      depthWrite: false,
+      blending: AdditiveBlending
+    }));
+    glowSprite.scale.set(11.5, 11.5, 1);
+    glowSprite.position.set(0, -3.3, -0.8);
+    root.add(glowSprite);
+  }
+  function setGyro(on) {
+    const upd = () => {
+      const b = $("gyro");
+      if (b) b.setAttribute("aria-pressed", String(gyroOn));
+    };
+    if (on && typeof DeviceOrientationEvent !== "undefined") {
+      const ask = DeviceOrientationEvent.requestPermission ? DeviceOrientationEvent.requestPermission() : Promise.resolve("granted");
+      ask.then((r) => {
+        if (r !== "granted") {
+          gyroOn = false;
+          upd();
+          return;
+        }
+        gyroHandler = (e) => {
+          if (dragging || gyroSuspend || e.gamma == null) return;
+          const base = flipped ? Math.PI : 0;
+          targetY = base + MathUtils.clamp(e.gamma * 0.016, -0.55, 0.55);
+          targetX = MathUtils.clamp((e.beta - 42) * 0.012, -0.35, 0.35);
+          lastMove = performance.now();
+        };
+        window.addEventListener("deviceorientation", gyroHandler);
+        gyroOn = true;
+        upd();
+      }).catch(() => {
+      });
+    } else {
+      if (gyroHandler) window.removeEventListener("deviceorientation", gyroHandler);
+      gyroOn = false;
+      targetX = -0.035;
+      targetY = flipped ? Math.PI : -0.15;
+      upd();
+    }
+  }
+  function startReveal() {
+    revealT = 0;
+  }
   function recordCard() {
     if (recording) {
       notice("\u6B63\u5728\u5F55\u5236\u4E2D\uFF0C\u8BF7\u7A0D\u5019");
@@ -32074,6 +32537,27 @@ void main(){vec4 art=texture2D(tText,vUv);if(art.a<.02)discard;gl_FragColor=vec4
     }
     floatT += dt;
     root.position.y = floatOn ? Math.sin(floatT * 1.15) * 0.075 : root.position.y * 0.85;
+    ambT += dt;
+    if (particles && ambienceOn) {
+      const pa = particles.pts.geometry.attributes.position;
+      for (let i = 0; i < particles.meta.length; i++) {
+        const m = particles.meta[i];
+        m.a += m.sp * dt;
+        pa.setXYZ(i, Math.cos(m.a) * m.r, m.h + Math.sin(ambT * 1.3 + m.ph) * 0.28, Math.sin(m.a) * m.r * 0.55);
+      }
+      pa.needsUpdate = true;
+      particles.mat.opacity = 0.55 + 0.3 * Math.sin(ambT * 2.1);
+    }
+    if (glowSprite) glowSprite.material.opacity = ambienceOn ? 0.34 + 0.14 * Math.sin(ambT * 1.4) : 0;
+    if (revealT < 1) {
+      revealT = Math.min(1, revealT + dt / 1.15);
+      const c1 = 1.70158, c3 = c1 + 1;
+      const back = 1 + c3 * Math.pow(revealT - 1, 3) + c1 * Math.pow(revealT - 1, 2);
+      root.scale.setScalar(Math.max(0.02, back));
+      const e = 1 - Math.pow(1 - revealT, 3);
+      root.rotation.y = targetY + (1 - e) * Math.PI * 2;
+      if (revealT >= 1) root.scale.setScalar(1);
+    }
     const ease = media.matches ? 1 : 1 - Math.exp(-dt * 8);
     root.rotation.x += (targetX - root.rotation.x) * ease;
     root.rotation.y += (targetY - root.rotation.y) * ease;
